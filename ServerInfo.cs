@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Discord.WebSocket;
+using System;
 using System.Collections.Generic;
-using Discord.WebSocket;
 using System.Configuration;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -18,20 +18,20 @@ namespace ActivityBot
 		public TimeSpan InactivityTime;
 		public bool Enabled;
 
-		private static readonly string directory = ConfigurationManager.AppSettings["ServerStoragePath"];
+		private static readonly string directory = ConfigurationManager.AppSettings["ServerStorageDirectory"];
 		private static readonly string fileFormat = ConfigurationManager.AppSettings["ServerStorageFormat"];
 		private static readonly string pathFormat = $"{directory}/{fileFormat}";
 
 		public ServerInfo(SocketGuild guild)
 		{
-			if(!TryRetrieve(guild.Id))
+			if (!TryRetrieve(guild.Id))
 			{
-				this.GuildId = guild.Id;
-				this.ActiveRoleId = null;
-				this.InactiveRoleId = null;
-				this.LastMessageTimes = new Dictionary<ulong, DateTime>();
-				this.InactivityTime = new TimeSpan(5, 0, 0, 0);
-				this.Enabled = false;
+				GuildId = guild.Id;
+				ActiveRoleId = null;
+				InactiveRoleId = null;
+				LastMessageTimes = new Dictionary<ulong, DateTime>();
+				InactivityTime = new TimeSpan(3, 0, 0, 0, 0);
+				Enabled = false;
 			}
 		}
 
@@ -45,12 +45,12 @@ namespace ActivityBot
 					BinaryFormatter formatter = new BinaryFormatter();
 					ServerInfo serverInfo;
 					using (var file = File.OpenRead(path)) serverInfo = (ServerInfo)formatter.Deserialize(file);
-					this.GuildId = serverInfo.GuildId;
-					this.ActiveRoleId = serverInfo.ActiveRoleId;
-					this.InactiveRoleId = serverInfo.InactiveRoleId;
-					this.LastMessageTimes = serverInfo.LastMessageTimes;
-					this.InactivityTime = serverInfo.InactivityTime;
-					this.Enabled = serverInfo.Enabled;
+					GuildId = serverInfo.GuildId;
+					ActiveRoleId = serverInfo.ActiveRoleId;
+					InactiveRoleId = serverInfo.InactiveRoleId;
+					LastMessageTimes = serverInfo.LastMessageTimes;
+					InactivityTime = serverInfo.InactivityTime;
+					Enabled = serverInfo.Enabled;
 					return true;
 				}
 				catch
@@ -63,7 +63,7 @@ namespace ActivityBot
 		}
 		public void WriteToDisk()
 		{
-			var path = string.Format(pathFormat, this.GuildId);
+			var path = string.Format(pathFormat, GuildId);
 			if (!new DirectoryInfo(directory).Exists)
 				Directory.CreateDirectory(directory);
 			var formatter = new BinaryFormatter();
@@ -76,16 +76,16 @@ namespace ActivityBot
 
 		public void Clear()
 		{
-			var path = string.Format(pathFormat, this.GuildId);
+			var path = string.Format(pathFormat, GuildId);
 			var f = new FileInfo(path);
 			if (f.Exists)
 				f.Delete();
-			this.GuildId = 0;
-			this.ActiveRoleId = null;
-			this.InactiveRoleId = null;
-			this.LastMessageTimes = null;
-			this.InactivityTime = new TimeSpan();
-			this.Enabled = false;
+			GuildId = 0;
+			ActiveRoleId = null;
+			InactiveRoleId = null;
+			LastMessageTimes = null;
+			InactivityTime = new TimeSpan();
+			Enabled = false;
 		}
 	}
 }

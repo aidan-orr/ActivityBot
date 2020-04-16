@@ -1,14 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Configuration;
-using System.Threading.Tasks;
-using System.IO;
-using Discord;
-using Discord.WebSocket;
+﻿using Discord;
 using Discord.Commands;
-using System.Threading;
+using Discord.WebSocket;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ActivityBot
 {
@@ -25,27 +24,27 @@ namespace ActivityBot
 		public ActivityBot()
 		{
 			var SocketConfig = new DiscordSocketConfig { LogLevel = LogSeverity.Info, DefaultRetryMode = RetryMode.AlwaysRetry, MessageCacheSize = 1000000 };
-			this._client = new DiscordSocketClient(SocketConfig);
-			this._botToken = File.ReadAllText(ConfigurationManager.AppSettings["DiscordToken"]).Trim();
+			_client = new DiscordSocketClient(SocketConfig);
+			_botToken = File.ReadAllText(ConfigurationManager.AppSettings["DiscordTokenFile"]).Trim();
 			CancellationTokenSource = new CancellationTokenSource();
 			CancellationToken = CancellationTokenSource.Token;
-			this.AvailableServers = new Dictionary<ulong, ServerInfo>();
+			AvailableServers = new Dictionary<ulong, ServerInfo>();
 			BotStart().GetAwaiter().GetResult();
 		}
 
 		public async Task BotStart()
 		{
 			await BotLog(new LogMessage(LogSeverity.Info, "ActivityBot", "Starting Bot"));
-			this._commandService = new CommandService();
-			this._commandHandler = new CommandHandler(_client, _commandService);
-			await this._commandHandler.InstallCommandsAsync();
-			this._client.Log += BotLog;
-			this._client.MessageReceived += MessageReceivedAsync;
-			this._client.GuildAvailable += AddAvailableGuild;
-			this._client.GuildUnavailable += RemoveUnavaiableGuild;
-			this._client.JoinedGuild += JoinedGuild;
-			this._client.LeftGuild += LeftGuild;
-			this._client.UserJoined += UserJoined;
+			_commandService = new CommandService();
+			_commandHandler = new CommandHandler(_client, _commandService);
+			await _commandHandler.InstallCommandsAsync();
+			_client.Log += BotLog;
+			_client.MessageReceived += MessageReceivedAsync;
+			_client.GuildAvailable += AddAvailableGuild;
+			_client.GuildUnavailable += RemoveUnavaiableGuild;
+			_client.JoinedGuild += JoinedGuild;
+			_client.LeftGuild += LeftGuild;
+			_client.UserJoined += UserJoined;
 			await _client.LoginAsync(TokenType.Bot, _botToken);
 			await _client.StartAsync();
 		}
@@ -54,9 +53,9 @@ namespace ActivityBot
 		{
 			BotLog(new LogMessage(LogSeverity.Info, "ActivityBot", "Stopping Bot"));
 			SaveAll();
-			this._client.StopAsync();
-			this.CancellationTokenSource.Cancel();
-			this.CancellationTokenSource.Dispose();
+			_client.StopAsync();
+			CancellationTokenSource.Cancel();
+			CancellationTokenSource.Dispose();
 		}
 
 		public Task BotLog(LogMessage msg)
@@ -99,59 +98,64 @@ namespace ActivityBot
 
 		public async Task UpdateServer(SocketGuild server)
 		{
-			ServerInfo serverInfo = this.AvailableServers[server.Id];
+			ServerInfo serverInfo = AvailableServers[server.Id];
 			if (serverInfo.Enabled)
 			{
 				SocketRole activeRole = server.GetRole((ulong)serverInfo.ActiveRoleId);
 				SocketRole inactiveRole = server.GetRole((ulong)serverInfo.InactiveRoleId);
 				foreach (SocketGuildUser user in server.Users)
 				{
-					DateTime lastMessage = serverInfo.LastMessageTimes[user.Id];
-					TimeSpan difference = DateTime.UtcNow - lastMessage;
-					if (difference <= serverInfo.InactivityTime)
+					if (!user.IsBot)
 					{
-						if(!user.Roles.Contains(activeRole))
-							await user.AddRoleAsync(activeRole);
-						if(user.Roles.Contains(inactiveRole))
-							await user.RemoveRoleAsync(inactiveRole);
-					}
-					else
-					{
-						if (!user.Roles.Contains(inactiveRole))
-							await user.AddRoleAsync(inactiveRole);
-						if (user.Roles.Contains(activeRole))
-							await user.RemoveRoleAsync(activeRole);
+						if (!serverInfo.LastMessageTimes.ContainsKey(user.Id))
+							serverInfo.LastMessageTimes.Add(user.Id, new DateTime());
+						DateTime lastMessage = serverInfo.LastMessageTimes[user.Id];
+						TimeSpan difference = DateTime.UtcNow - lastMessage;
+						if (difference <= serverInfo.InactivityTime)
+						{
+							if (!user.Roles.Contains(activeRole))
+								await user.AddRoleAsync(activeRole);
+							if (user.Roles.Contains(inactiveRole))
+								await user.RemoveRoleAsync(inactiveRole);
+						}
+						else
+						{
+							if (!user.Roles.Contains(inactiveRole))
+								await user.AddRoleAsync(inactiveRole);
+							if (user.Roles.Contains(activeRole))
+								await user.RemoveRoleAsync(activeRole);
+						}
 					}
 				}
 			}
+			serverInfo.WriteToDisk();
 		}
 
 		private async Task AddAvailableGuild(SocketGuild server)
 		{
-			this.AvailableServers.Add(server.Id, new ServerInfo(server));
-			this.UpdateServer(server);
+			AvailableServers.Add(server.Id, new ServerInfo(server));
 			await Log($"Server {server.Name} became available");
 		}
 		private async Task RemoveUnavaiableGuild(SocketGuild server)
 		{
-			this.AvailableServers[server.Id].WriteToDisk();
-			this.AvailableServers.Remove(server.Id);
+			AvailableServers[server.Id].WriteToDisk();
+			AvailableServers.Remove(server.Id);
 			await Log($"Server {server.Name} became unavailable");
 		}
 		private async Task JoinedGuild(SocketGuild server)
 		{
-			this.AvailableServers.Add(server.Id, new ServerInfo(server));
+			AvailableServers.Add(server.Id, new ServerInfo(server));
 			await Log($"Successfully joined server {server.Name}");
 		}
 		private async Task LeftGuild(SocketGuild server)
 		{
-			this.AvailableServers[server.Id].Clear();
-			this.AvailableServers.Remove(server.Id);
+			AvailableServers[server.Id].Clear();
+			AvailableServers.Remove(server.Id);
 			await Log($"Left server {server.Name}");
 		}
 		private async Task UserJoined(SocketGuildUser user)
 		{
-			var server = this.AvailableServers[user.Guild.Id];
+			var server = AvailableServers[user.Guild.Id];
 			if (server.Enabled)
 				await user.AddRoleAsync(user.Guild.GetRole((ulong)server.InactiveRoleId));
 		}
