@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Reflection;
+using System.Linq;
 
 namespace ActivityBot
 {
@@ -11,81 +13,64 @@ namespace ActivityBot
 	public class ServerInfo
 	{
 
-		public ulong GuildId;
-		public ulong? ActiveRoleId;
-		public ulong? InactiveRoleId;
-		public Dictionary<ulong, DateTime> LastActivityTimes;
-		public TimeSpan InactivityTime;
-		public bool Enabled;
+		public ulong ServerId;
+		public ServerInfoFields Fields;
 
 		private static readonly string directory = ConfigurationManager.AppSettings["ServerStorageDirectory"];
 		private static readonly string fileFormat = ConfigurationManager.AppSettings["ServerStorageFormat"];
 		private static readonly string pathFormat = $"{directory}/{fileFormat}";
 
-		public ServerInfo(SocketGuild guild)
+		public ServerInfo(ulong serverId)
 		{
-			if (!TryRetrieve(guild.Id))
+			Fields = new ServerInfoFields();
+			foreach (FieldInfo field in typeof(ServerInfoFields).GetFields())
 			{
-				GuildId = guild.Id;
-				ActiveRoleId = null;
-				InactiveRoleId = null;
-				LastActivityTimes = new Dictionary<ulong, DateTime>();
-				InactivityTime = new TimeSpan(3, 0, 0, 0, 0);
-				Enabled = false;
+				field.SetValue(Fields, Activator.CreateInstance(field.FieldType));
 			}
+			ServerId = serverId;
 		}
 
-		private bool TryRetrieve(ulong guildId)
+		public static ServerInfo GetServerInfo(ulong guildId)
 		{
-			var path = String.Format(pathFormat, guildId);
+			string path = String.Format(pathFormat, guildId);
 			if (File.Exists(path))
 			{
 				try
 				{
-					BinaryFormatter formatter = new BinaryFormatter();
-					ServerInfo serverInfo;
-					using (var file = File.OpenRead(path)) serverInfo = (ServerInfo)formatter.Deserialize(file);
-					GuildId = serverInfo.GuildId;
-					ActiveRoleId = serverInfo.ActiveRoleId;
-					InactiveRoleId = serverInfo.InactiveRoleId;
-					LastActivityTimes = serverInfo.LastActivityTimes;
-					InactivityTime = serverInfo.InactivityTime;
-					Enabled = serverInfo.Enabled;
-					return true;
+					using FileStream file = File.OpenRead(path);
+					return (ServerInfo)(new BinaryFormatter().Deserialize(file));
 				}
 				catch
 				{
-					return false;
+					return new ServerInfo(guildId);
 				}
 			}
 			else
-				return false;
+				return new ServerInfo(guildId);
 		}
+
 		public void WriteToDisk()
 		{
-			var path = string.Format(pathFormat, GuildId);
+			string path = string.Format(pathFormat, ServerId);
 			if (!new DirectoryInfo(directory).Exists)
 				Directory.CreateDirectory(directory);
-			var formatter = new BinaryFormatter();
-			var fileInfo = new FileInfo(path);
+			FileInfo fileInfo = new FileInfo(path);
 			if (fileInfo.Exists)
 				fileInfo.Delete();
-			using var file = File.Open(path, FileMode.OpenOrCreate);
-			formatter.Serialize(file, this);
+			using FileStream file = File.Open(path, FileMode.OpenOrCreate);
+			new BinaryFormatter().Serialize(file, this);
 		}
 
 		public void Clear()
 		{
-			var path = string.Format(pathFormat, GuildId);
-			var f = new FileInfo(path);
-			if (f.Exists)
-				f.Delete();
-			GuildId = 0;
-			ActiveRoleId = null;
-			InactiveRoleId = null;
-			LastActivityTimes = null;
-			InactivityTime = new TimeSpan();
-			Enabled = false;
+			string path = string.Format(pathFormat, ServerId);
+			FileInfo fileInfo = new FileInfo(path);
+			if (fileInfo.Exists)
+				fileInfo.Delete();
+			foreach (FieldInfo field in typeof(ServerInfo).GetFields())
+			{
+				field.SetValue(this, default);
+			}
 		}
 	}
 }

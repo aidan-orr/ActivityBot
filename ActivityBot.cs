@@ -80,12 +80,15 @@ namespace ActivityBot
 		{
 			if (!message.Author.IsBot)
 			{
-				SocketGuildUser author = message.Author as SocketGuildUser;
-				SocketGuild guild = author.Guild as SocketGuild;
+				SocketGuildUser user = message.Author as SocketGuildUser;
+				SocketGuild guild = user.Guild as SocketGuild;
 				AvailableServers.TryGetValue(guild.Id, out ServerInfo server);
-				if (server.Enabled)
+				if (server.Fields.Enabled)
 				{
-					server.LastActivityTimes[author.Id] = DateTime.UtcNow;
+					if (!server.Fields.LastActivityTimes.ContainsKey(user.Id))
+						server.Fields.LastActivityTimes.Add(user.Id, DateTime.UtcNow);
+					else
+						server.Fields.LastActivityTimes[user.Id] = DateTime.UtcNow;
 					await UpdateServer(guild);
 				}
 			}
@@ -96,9 +99,12 @@ namespace ActivityBot
 			{
 				SocketGuild guild = (user as SocketGuildUser).Guild;
 				ServerInfo server = AvailableServers[guild.Id];
-				if (server.Enabled)
+				if (server.Fields.Enabled)
 				{
-					server.LastActivityTimes[user.Id] = DateTime.UtcNow;
+					if (!server.Fields.LastActivityTimes.ContainsKey(user.Id))
+						server.Fields.LastActivityTimes.Add(user.Id, DateTime.UtcNow);
+					else
+						server.Fields.LastActivityTimes[user.Id] = DateTime.UtcNow;
 					await UpdateServer(guild);
 				}
 			}
@@ -114,19 +120,19 @@ namespace ActivityBot
 		public async Task UpdateServer(SocketGuild server)
 		{
 			ServerInfo serverInfo = AvailableServers[server.Id];
-			if (serverInfo.Enabled)
+			if (serverInfo.Fields.Enabled)
 			{
-				SocketRole activeRole = server.GetRole((ulong)serverInfo.ActiveRoleId);
-				SocketRole inactiveRole = server.GetRole((ulong)serverInfo.InactiveRoleId);
+				SocketRole activeRole = server.GetRole((ulong)serverInfo.Fields.ActiveRoleId);
+				SocketRole inactiveRole = server.GetRole((ulong)serverInfo.Fields.InactiveRoleId);
 				foreach (SocketGuildUser user in server.Users)
 				{
 					if (!user.IsBot)
 					{
-						if (!serverInfo.LastActivityTimes.ContainsKey(user.Id))
-							serverInfo.LastActivityTimes.Add(user.Id, new DateTime());
-						DateTime lastMessage = serverInfo.LastActivityTimes[user.Id];
+						if (!serverInfo.Fields.LastActivityTimes.ContainsKey(user.Id))
+							serverInfo.Fields.LastActivityTimes.Add(user.Id, new DateTime());
+						DateTime lastMessage = serverInfo.Fields.LastActivityTimes[user.Id];
 						TimeSpan difference = DateTime.UtcNow - lastMessage;
-						if (difference <= serverInfo.InactivityTime)
+						if (difference <= serverInfo.Fields.InactivityTime)
 						{
 							if (!user.Roles.Contains(activeRole))
 								await user.AddRoleAsync(activeRole);
@@ -148,7 +154,7 @@ namespace ActivityBot
 
 		private async Task AddAvailableGuild(SocketGuild server)
 		{
-			AvailableServers.Add(server.Id, new ServerInfo(server));
+			AvailableServers.Add(server.Id, ServerInfo.GetServerInfo(server.Id));
 			await Log($"Server {server.Name} became available");
 		}
 		private async Task RemoveUnavaiableGuild(SocketGuild server)
@@ -159,7 +165,7 @@ namespace ActivityBot
 		}
 		private async Task JoinedGuild(SocketGuild server)
 		{
-			AvailableServers.Add(server.Id, new ServerInfo(server));
+			AvailableServers.Add(server.Id, ServerInfo.GetServerInfo(server.Id));
 			await Log($"Successfully joined server {server.Name}");
 		}
 		private async Task LeftGuild(SocketGuild server)
@@ -170,9 +176,9 @@ namespace ActivityBot
 		}
 		private async Task UserJoined(SocketGuildUser user)
 		{
-			var server = AvailableServers[user.Guild.Id];
-			if (server.Enabled)
-				await user.AddRoleAsync(user.Guild.GetRole((ulong)server.InactiveRoleId));
+			ServerInfo server = AvailableServers[user.Guild.Id];
+			if (server.Fields.Enabled)
+				await user.AddRoleAsync(user.Guild.GetRole((ulong)server.Fields.InactiveRoleId));
 		}
 	}
 }

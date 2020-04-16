@@ -20,10 +20,10 @@ namespace ActivityBot.Modules
 				public async Task SetAsync(SocketRole role)
 				{
 					ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
-					info.ActiveRoleId = role.Id;
-					if (info.ActiveRoleId != null && info.InactiveRoleId != null)
+					info.Fields.ActiveRoleId = role.Id;
+					if (info.Fields.ActiveRoleId != null && info.Fields.InactiveRoleId != null)
 					{
-						info.Enabled = true;
+						info.Fields.Enabled = true;
 					}
 					await ReplyAsync($"Set the active role to {role.Mention}");
 				}
@@ -31,8 +31,8 @@ namespace ActivityBot.Modules
 				public async Task ClearAsync()
 				{
 					ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
-					info.ActiveRoleId = null;
-					info.Enabled = false;
+					info.Fields.ActiveRoleId = null;
+					info.Fields.Enabled = false;
 					await ReplyAsync("Cleared the active role");
 				}
 			}
@@ -43,10 +43,10 @@ namespace ActivityBot.Modules
 				public async Task SetAsync(SocketRole role)
 				{
 					ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
-					info.InactiveRoleId = role.Id;
-					if (info.ActiveRoleId != null && info.InactiveRoleId != null)
+					info.Fields.InactiveRoleId = role.Id;
+					if (info.Fields.ActiveRoleId != null && info.Fields.InactiveRoleId != null)
 					{
-						info.Enabled = true;
+						info.Fields.Enabled = true;
 					}
 					await ReplyAsync($"Set the active role to {role.Mention}");
 				}
@@ -54,8 +54,8 @@ namespace ActivityBot.Modules
 				public async Task ClearAsync()
 				{
 					ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
-					info.InactiveRoleId = null;
-					info.Enabled = false;
+					info.Fields.InactiveRoleId = null;
+					info.Fields.Enabled = false;
 					await ReplyAsync("Cleared the inactive role");
 				}
 			}
@@ -67,7 +67,7 @@ namespace ActivityBot.Modules
 			public async Task SetAsync([Remainder]string format)
 			{
 				ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
-				if (TimeSpan.TryParse(format, out info.InactivityTime))
+				if (TimeSpan.TryParse(format, out info.Fields.InactivityTime))
 					await ReplyAsync("Updated the inactivity time");
 				else
 					await ReplyAsync("Inactivity time in incorrect format");

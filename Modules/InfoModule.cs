@@ -22,9 +22,9 @@ namespace ActivityBot.Modules
 			{
 				ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
 				string builder = "";
-				TimeSpan inactivity = info.InactivityTime;
-				builder += $"Active Role: {(info.ActiveRoleId == null ? "Not Set" : "@" + Context.Guild.GetRole((ulong)info.ActiveRoleId).Name)}\n";
-				builder += $"Inactive Role: {(info.InactiveRoleId == null ? "Not Set" : "@" + Context.Guild.GetRole((ulong)info.InactiveRoleId).Name)}\n";
+				TimeSpan inactivity = info.Fields.InactivityTime;
+				builder += $"Active Role: {(info.Fields.ActiveRoleId == null ? "Not Set" : "@" + Context.Guild.GetRole((ulong)info.Fields.ActiveRoleId).Name)}\n";
+				builder += $"Inactive Role: {(info.Fields.InactiveRoleId == null ? "Not Set" : "@" + Context.Guild.GetRole((ulong)info.Fields.InactiveRoleId).Name)}\n";
 				builder += $"Inactivity Time: {(inactivity.Days != 0 ? $"{inactivity.Days} Days" : "")} {(inactivity.Hours != 0 ? $"{inactivity.Hours} Hours" : "")} {(inactivity.Minutes != 0 ? $"{inactivity.Hours} Minutes" : "")} {(inactivity.Seconds != 0 ? $"{inactivity.Seconds} Seconds" : "")}\n";
 				await ReplyAsync(builder);
 			}
@@ -34,7 +34,7 @@ namespace ActivityBot.Modules
 			{
 				SocketGuildUser guildUser = user as SocketGuildUser;
 				ServerInfo info = Program.Watcher.AvailableServers[Context.Guild.Id];
-				TimeSpan inactivity = DateTime.UtcNow - info.LastActivityTimes[user.Id];
+				TimeSpan inactivity = DateTime.UtcNow - info.Fields.LastActivityTimes[user.Id];
 				string builder = "";
 				builder += $"User: {guildUser.Nickname}\n";
 				builder += $"Inactivity Time: {(inactivity.Days != 0 ? $"{inactivity.Days} Days" : "")} {(inactivity.Hours != 0 ? $"{inactivity.Hours} Hours" : "")} {(inactivity.Minutes != 0 ? $"{inactivity.Hours} Minutes" : "")} {(inactivity.Seconds != 0 ? $"{inactivity.Seconds} Seconds" : "")}\n";
