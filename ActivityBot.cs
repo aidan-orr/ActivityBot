@@ -45,6 +45,7 @@ namespace ActivityBot
 			_client.JoinedGuild += JoinedGuild;
 			_client.LeftGuild += LeftGuild;
 			_client.UserJoined += UserJoined;
+			_client.UserVoiceStateUpdated += UserVoiceStateUpdated;
 			await _client.SetGameAsync("you", null, ActivityType.Watching);
 			await _client.LoginAsync(TokenType.Bot, _botToken);
 			await _client.StartAsync();
@@ -84,7 +85,20 @@ namespace ActivityBot
 				AvailableServers.TryGetValue(guild.Id, out ServerInfo server);
 				if (server.Enabled)
 				{
-					server.LastMessageTimes[author.Id] = DateTime.UtcNow;
+					server.LastActivityTimes[author.Id] = DateTime.UtcNow;
+					await UpdateServer(guild);
+				}
+			}
+		}
+		public async Task UserVoiceStateUpdated(SocketUser user, SocketVoiceState initial, SocketVoiceState final)
+		{
+			if(!user.IsBot)
+			{
+				SocketGuild guild = (user as SocketGuildUser).Guild;
+				ServerInfo server = AvailableServers[guild.Id];
+				if (server.Enabled)
+				{
+					server.LastActivityTimes[user.Id] = DateTime.UtcNow;
 					await UpdateServer(guild);
 				}
 			}
@@ -108,9 +122,9 @@ namespace ActivityBot
 				{
 					if (!user.IsBot)
 					{
-						if (!serverInfo.LastMessageTimes.ContainsKey(user.Id))
-							serverInfo.LastMessageTimes.Add(user.Id, new DateTime());
-						DateTime lastMessage = serverInfo.LastMessageTimes[user.Id];
+						if (!serverInfo.LastActivityTimes.ContainsKey(user.Id))
+							serverInfo.LastActivityTimes.Add(user.Id, new DateTime());
+						DateTime lastMessage = serverInfo.LastActivityTimes[user.Id];
 						TimeSpan difference = DateTime.UtcNow - lastMessage;
 						if (difference <= serverInfo.InactivityTime)
 						{

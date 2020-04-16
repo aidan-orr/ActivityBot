@@ -14,7 +14,7 @@ namespace ActivityBot
 		public ulong GuildId;
 		public ulong? ActiveRoleId;
 		public ulong? InactiveRoleId;
-		public Dictionary<ulong, DateTime> LastMessageTimes;
+		public Dictionary<ulong, DateTime> LastActivityTimes;
 		public TimeSpan InactivityTime;
 		public bool Enabled;
 
@@ -29,7 +29,7 @@ namespace ActivityBot
 				GuildId = guild.Id;
 				ActiveRoleId = null;
 				InactiveRoleId = null;
-				LastMessageTimes = new Dictionary<ulong, DateTime>();
+				LastActivityTimes = new Dictionary<ulong, DateTime>();
 				InactivityTime = new TimeSpan(3, 0, 0, 0, 0);
 				Enabled = false;
 			}
@@ -48,7 +48,7 @@ namespace ActivityBot
 					GuildId = serverInfo.GuildId;
 					ActiveRoleId = serverInfo.ActiveRoleId;
 					InactiveRoleId = serverInfo.InactiveRoleId;
-					LastMessageTimes = serverInfo.LastMessageTimes;
+					LastActivityTimes = serverInfo.LastActivityTimes;
 					InactivityTime = serverInfo.InactivityTime;
 					Enabled = serverInfo.Enabled;
 					return true;
@@ -83,7 +83,7 @@ namespace ActivityBot
 			GuildId = 0;
 			ActiveRoleId = null;
 			InactiveRoleId = null;
-			LastMessageTimes = null;
+			LastActivityTimes = null;
 			InactivityTime = new TimeSpan();
 			Enabled = false;
 		}
