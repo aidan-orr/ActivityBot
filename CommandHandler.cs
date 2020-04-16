@@ -32,9 +32,9 @@ namespace ActivityBot
 
 			if (!(message.HasCharPrefix('!', ref argPos)) || message.Author.IsBot) return;
 
-			var context = new SocketCommandContext(_client, message);
+			SocketCommandContext context = new SocketCommandContext(_client, message);
 
-			var result = await _commands.ExecuteAsync(context: context, argPos: argPos, services: null);
+			IResult result = await _commands.ExecuteAsync(context: context, argPos: argPos, services: null);
 			if (!result.IsSuccess)
 				await messageParam.Channel.SendMessageAsync(result.ErrorReason);
 		}
