@@ -26,7 +26,7 @@ namespace ActivityBot
 		{
 			var SocketConfig = new DiscordSocketConfig { LogLevel = LogSeverity.Info, DefaultRetryMode = RetryMode.AlwaysRetry, MessageCacheSize = 1000000 };
 			this._client = new DiscordSocketClient(SocketConfig);
-			this._botToken = File.ReadAllText(ConfigurationManager.AppSettings["DiscordToken"]).Trim();
+			this._botToken = File.ReadAllText(ConfigurationManager.AppSettings["DiscordTokenFile"]).Trim();
 			CancellationTokenSource = new CancellationTokenSource();
 			CancellationToken = CancellationTokenSource.Token;
 			this.AvailableServers = new Dictionary<ulong, ServerInfo>();
@@ -106,30 +106,35 @@ namespace ActivityBot
 				SocketRole inactiveRole = server.GetRole((ulong)serverInfo.InactiveRoleId);
 				foreach (SocketGuildUser user in server.Users)
 				{
-					DateTime lastMessage = serverInfo.LastMessageTimes[user.Id];
-					TimeSpan difference = DateTime.UtcNow - lastMessage;
-					if (difference <= serverInfo.InactivityTime)
+					if (!user.IsBot)
 					{
-						if(!user.Roles.Contains(activeRole))
-							await user.AddRoleAsync(activeRole);
-						if(user.Roles.Contains(inactiveRole))
-							await user.RemoveRoleAsync(inactiveRole);
-					}
-					else
-					{
-						if (!user.Roles.Contains(inactiveRole))
-							await user.AddRoleAsync(inactiveRole);
-						if (user.Roles.Contains(activeRole))
-							await user.RemoveRoleAsync(activeRole);
+						if (!serverInfo.LastMessageTimes.ContainsKey(user.Id))
+							serverInfo.LastMessageTimes.Add(user.Id, new DateTime());
+						DateTime lastMessage = serverInfo.LastMessageTimes[user.Id];
+						TimeSpan difference = DateTime.UtcNow - lastMessage;
+						if (difference <= serverInfo.InactivityTime)
+						{
+							if (!user.Roles.Contains(activeRole))
+								await user.AddRoleAsync(activeRole);
+							if (user.Roles.Contains(inactiveRole))
+								await user.RemoveRoleAsync(inactiveRole);
+						}
+						else
+						{
+							if (!user.Roles.Contains(inactiveRole))
+								await user.AddRoleAsync(inactiveRole);
+							if (user.Roles.Contains(activeRole))
+								await user.RemoveRoleAsync(activeRole);
+						}
 					}
 				}
 			}
+			serverInfo.WriteToDisk();
 		}
 
 		private async Task AddAvailableGuild(SocketGuild server)
 		{
 			this.AvailableServers.Add(server.Id, new ServerInfo(server));
-			this.UpdateServer(server);
 			await Log($"Server {server.Name} became available");
 		}
 		private async Task RemoveUnavaiableGuild(SocketGuild server)

@@ -6,7 +6,7 @@ namespace ActivityBot
 	class Program
 	{
 		public static ActivityBot Watcher;
-		public static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
+		public static void Main() => new Program().MainAsync().GetAwaiter().GetResult();
 
 		public async Task MainAsync()
 		{

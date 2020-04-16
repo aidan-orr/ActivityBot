@@ -18,19 +18,19 @@ namespace ActivityBot
 		public TimeSpan InactivityTime;
 		public bool Enabled;
 
-		private static readonly string directory = ConfigurationManager.AppSettings["ServerStoragePath"];
+		private static readonly string directory = ConfigurationManager.AppSettings["ServerStorageDirectory"];
 		private static readonly string fileFormat = ConfigurationManager.AppSettings["ServerStorageFormat"];
 		private static readonly string pathFormat = $"{directory}/{fileFormat}";
 
 		public ServerInfo(SocketGuild guild)
 		{
-			if(!TryRetrieve(guild.Id))
+			if (!TryRetrieve(guild.Id))
 			{
 				this.GuildId = guild.Id;
 				this.ActiveRoleId = null;
 				this.InactiveRoleId = null;
 				this.LastMessageTimes = new Dictionary<ulong, DateTime>();
-				this.InactivityTime = new TimeSpan(5, 0, 0, 0);
+				this.InactivityTime = new TimeSpan(3, 0, 0, 0, 0);
 				this.Enabled = false;
 			}
 		}
