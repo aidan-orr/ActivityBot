@@ -45,6 +45,7 @@ namespace ActivityBot
 			_client.JoinedGuild += JoinedGuild;
 			_client.LeftGuild += LeftGuild;
 			_client.UserJoined += UserJoined;
+			await _client.SetGameAsync("you", null, ActivityType.Watching);
 			await _client.LoginAsync(TokenType.Bot, _botToken);
 			await _client.StartAsync();
 		}
