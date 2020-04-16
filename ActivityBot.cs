@@ -92,7 +92,7 @@ namespace ActivityBot
 		}
 		public async Task UserVoiceStateUpdated(SocketUser user, SocketVoiceState initial, SocketVoiceState final)
 		{
-			if(!user.IsBot)
+			if (!user.IsBot)
 			{
 				SocketGuild guild = (user as SocketGuildUser).Guild;
 				ServerInfo server = AvailableServers[guild.Id];
